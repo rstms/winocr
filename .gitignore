@@ -1,0 +1,7 @@
+winocr
+winocr.exe
+notes
+cruft
+*.core
+*.log
+*postactivate
