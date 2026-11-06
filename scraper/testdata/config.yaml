@@ -1,0 +1,8 @@
+bot:
+  logfile: stdout
+  verbose: true
+  filename_pattern: notepad.exe 
+  process_pattern: notepad
+  title_pattern: .*Notepad$
+  environment_keys:
+    WINDIR
