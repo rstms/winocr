@@ -31,41 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 package main
 
 import (
-	"fmt"
 	"github.com/rstms/winocr/cmd"
-	"github.com/rstms/winocr/scraper"
-	"os"
-	"os/exec"
 )
 
 func main() {
-
-	if os.Getenv("TESSDATA_PREFIX") == "" {
-		assetsDir, err := scraper.GenerateAssets()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		defer os.RemoveAll(assetsDir)
-		executable, err := os.Executable()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		args := []string{}
-		if len(os.Args) > 1 {
-			args = os.Args[1:]
-		}
-		cmd := exec.Command(executable, args...)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		err = cmd.Run()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		os.Exit(0)
-	} else {
-		cmd.Execute()
-	}
+	cmd.Execute()
 }
