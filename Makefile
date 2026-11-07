@@ -5,25 +5,31 @@ version := $(shell cat VERSION)
 
 include make/common.mk
 
+buildflags = -o $(binary) -buildmode exe
+
+GOSRC = go.sum $(wildcard *.go) $(wildcard cmd/*.go)
+
 default: build
 
 build: $(binary)
 
-$(binary): fmt
-	fix go build . ./...
-	go build -o $@ -buildmode exe main.go
-
-fmt: go.sum
-	fix go fmt . ./...
-
-go.mod:
-	go mod init
-
-go.sum: go.mod
+go.sum: 
+	go mod init 
 	go mod tidy
 
-install: build
-	go install
+$(binary): .fmt
+	fix go build ./...
+	go build $(buildflags) .
+
+.fmt: $(GOSRC) 
+	fix go fmt . ./...
+	touch $@
+
+fmt: .fmt
+
+install: $(binary)
+	go env
+	go install $(buildflags)
 
 test: fmt
 	go test -v -failfast . ./...
@@ -56,16 +62,16 @@ update-modules:
 	-rm .proxy
 
 clean:
-	rm -f $(binary) *.core 
+	rm -f $(binary) *.core .fmt
 	go clean
 	rm -rf dist && mkdir dist
+	rm -f go.mod go.sum
 
 sterile: clean
 	go clean -i || true
 	go clean
 	go clean -cache
 	go clean -modcache
-	rm -f go.mod go.sum
 
 show-vars:
 	@$(foreach var,$(all_variables),echo $(var)=$($(var));)

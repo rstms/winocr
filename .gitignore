@@ -2,6 +2,7 @@ winocr
 winocr.exe
 notes
 cruft
+.fmt
 *.core
 *.log
 *postactivate

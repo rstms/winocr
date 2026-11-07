@@ -53,7 +53,7 @@ If FILENAME is missing or '-', the image data is written to stdout.
 		ofp := os.Stdout
 		if len(args) > 1 {
 			filename := args[1]
-			ofp, err := os.Create(filename)
+			ofp, err = os.Create(filename)
 			cobra.CheckErr(err)
 			defer ofp.Close()
 		}
