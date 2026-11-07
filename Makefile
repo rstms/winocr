@@ -11,7 +11,7 @@ build: $(binary)
 
 $(binary): fmt
 	fix go build . ./...
-	go build
+	go build -o $@ -buildmode exe main.go
 
 fmt: go.sum
 	fix go fmt . ./...
