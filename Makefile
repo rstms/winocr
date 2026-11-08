@@ -28,7 +28,6 @@ $(binary): .fmt
 fmt: .fmt
 
 install: $(binary)
-	go env
 	go install $(buildflags)
 
 test: fmt
