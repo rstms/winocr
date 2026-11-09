@@ -34,7 +34,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/rstms/winocr/assets"
 	"github.com/rstms/winocr/scraper"
 	"github.com/spf13/cobra"
 )
@@ -49,9 +48,6 @@ and the resulting text is written to stdout.
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		a, err := assets.NewAssets("text", args)
-		cobra.CheckErr(err)
-		defer a.Close()
 		pid, err := strconv.Atoi(args[0])
 		cobra.CheckErr(err)
 		s, err := scraper.NewScraper()

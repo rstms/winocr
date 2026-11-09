@@ -19,7 +19,7 @@ go.mod:
 go.sum: go.mod
 	go mod tidy
 
-$(binary): .fmt assets/assets
+$(binary): .fmt
 	fix go build ./...
 	go build $(buildflags) main.go
 
@@ -76,6 +76,3 @@ sterile: clean
 
 show-vars:
 	@$(foreach var,$(all_variables),echo $(var)=$($(var));)
-
-assets/assets:
-	./update-assets $(shell realpath $@)

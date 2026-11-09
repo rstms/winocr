@@ -56,6 +56,14 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 		return "", Fatal(err)
 	}
 
+	dataDir, ok := os.LookupEnv("TESSDATA_PREFIX")
+	if !ok {
+		return "", Fatalf("unset: TESSDATA_PREFIX")
+	}
+	if !IsDir(dataDir) {
+		return "", Fatalf("TESSDATA_PREFIX value not a directory")
+	}
+
 	if s.debug {
 		log.Printf("opening gosseract client...\n")
 	}
