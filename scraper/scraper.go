@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Scraper struct {
@@ -90,6 +91,8 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 	if err != nil {
 		return Fatal(err)
 	}
+	time.Sleep(1 * time.Second)
+
 	x, y, width, height := robotgo.GetClient(pid)
 	image, err := robotgo.CaptureImg(x, y, width, height)
 	if err != nil {
