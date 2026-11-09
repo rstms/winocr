@@ -6,3 +6,4 @@ cruft
 *.core
 *.log
 *postactivate
+assets/assets

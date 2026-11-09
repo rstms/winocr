@@ -7,19 +7,21 @@ include make/common.mk
 
 buildflags = -o $(binary) -buildmode exe
 
-GOSRC = go.sum $(wildcard *.go) $(wildcard cmd/*.go)
+GOSRC = go.sum $(shell find . -type f -name '*.go')
 
 default: build
 
 build: $(binary)
 
-go.sum: 
-	go mod init 
+go.mod:
+	go mod init
+
+go.sum: go.mod
 	go mod tidy
 
-$(binary): .fmt
+$(binary): .fmt assets/assets
 	fix go build ./...
-	go build $(buildflags) .
+	go build $(buildflags) main.go
 
 .fmt: $(GOSRC) 
 	fix go fmt . ./...
@@ -28,7 +30,7 @@ $(binary): .fmt
 fmt: .fmt
 
 install: $(binary)
-	go install $(buildflags)
+	go install 
 
 test: fmt
 	go test -v -failfast . ./...
@@ -74,3 +76,6 @@ sterile: clean
 
 show-vars:
 	@$(foreach var,$(all_variables),echo $(var)=$($(var));)
+
+assets/assets:
+	./update-assets $(shell realpath $@)

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -ue
+
+asset_dir="${1:-$(realpath ./assets/assets)}"
+
+rm -rf "$asset_dir"
+mkdir -p "$asset_dir/bin"
+
+command -v exetool >/dev/null 2>&1 || go install github.com/rstms/exetool@latest
+exetool --version
+
+install_asset() {
+    local src="$(realpath "$1")"
+    local dst="$(realpath "$asset_dir/bin/$(basename "$src")")"
+    cp -vp "$src" "$dst"
+    for file in $(exetool depends "$dst"); do 
+        cp -vrp "$file" "$asset_dir/bin/$(basename "$file")"
+    done
+}
+
+install_asset "./winocr.exe"
+tesseract="$(command -v tesseract.exe)"
+install_asset "$tesseract"
+
+tessdata="$(dirname $(dirname "$tesseract"))/share/tessdata" 
+[ -d "$tessdata" ]
+rm -rf ${asset_dir}/tessdata
+cp -vrp "$tessdata" "$asset_dir"

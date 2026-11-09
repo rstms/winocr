@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/otiai10/gosseract/v2"
 	"image/png"
@@ -11,11 +12,31 @@ import (
 )
 
 type Scraper struct {
-	pid int
+	pid                int
+	GosseractVersion   string
+	AvailableLanguages []string
+	debug              bool
 }
 
-func NewScraper() *Scraper {
-	return &Scraper{}
+func NewScraper() (*Scraper, error) {
+	s := Scraper{
+		GosseractVersion: gosseract.Version(),
+		debug:            ViperGetBool("debug"),
+	}
+	var err error
+	s.AvailableLanguages, err = gosseract.GetAvailableLanguages()
+	if err != nil {
+		return nil, Fatal(err)
+	}
+	if s.debug {
+		fmt.Printf("NewScraper: %s\n", FormatJSON(s))
+	}
+	return &s, nil
+
+}
+
+func (s *Scraper) Close() error {
+	return nil
 }
 
 func (s *Scraper) WindowText(pid int) (string, error) {
@@ -34,9 +55,20 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 	if err != nil {
 		return "", Fatal(err)
 	}
+
+	if s.debug {
+		log.Printf("opening gosseract client...\n")
+	}
+
 	client := gosseract.NewClient()
+
 	defer client.Close()
+	if s.debug {
+		log.Printf("gosseract client version: %s\n", client.Version())
+	}
+
 	client.SetImage(filename)
+
 	text, err := client.Text()
 	if err != nil {
 		return "", Fatal(err)
@@ -69,7 +101,9 @@ func (s *Scraper) ActivateWindow(pid int) error {
 	}
 	for _, p := range pids {
 		if p == pid {
-			log.Printf("activating PID %d\n", pid)
+			if s.debug {
+				log.Printf("activating PID %d\n", pid)
+			}
 			err = robotgo.ActivePid(pid)
 			if err != nil {
 				return Fatal(err)

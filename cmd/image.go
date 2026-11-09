@@ -44,20 +44,27 @@ var imageCmd = &cobra.Command{
 	Long: `
 If the process has a main window, an image is captured to a 
 a PNG file using the provided filename.
-If FILENAME is missing or '-', the image data is written to stdout.
+If FILENAME is '-', the image data is written to stdout.
 `,
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		s, err := scraper.NewScraper()
+		cobra.CheckErr(err)
+		defer s.Close()
+
 		pid, err := strconv.Atoi(args[0])
 		cobra.CheckErr(err)
+
 		ofp := os.Stdout
-		if len(args) > 1 {
+		if args[1] != "-" {
 			filename := args[1]
 			ofp, err = os.Create(filename)
 			cobra.CheckErr(err)
 			defer ofp.Close()
 		}
-		err = scraper.NewScraper().WriteWindowImage(ofp, pid)
+
+		err = s.WriteWindowImage(ofp, pid)
 		cobra.CheckErr(err)
 	},
 }
