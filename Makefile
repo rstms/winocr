@@ -5,7 +5,11 @@ version := $(shell cat VERSION)
 
 include make/common.mk
 
-buildflags = -o $(binary) -buildmode exe
+#buildflags = -o $(binary) -buildmode exe -tags win
+buildflags = -o $(binary) -tags win
+
+#export CGO_ENABLED=1
+#export GCC=/c/msys64/ucrt64/bin/gcc.exe
 
 GOSRC = go.sum $(shell find . -type f -name '*.go')
 
@@ -19,10 +23,8 @@ go.mod:
 go.sum: go.mod
 	go mod tidy
 
-$(binary): fmt
-	fix go build ./...
+$(binary): go.sum fmt
 	go build 
-	#go build $(buildflags) main.go
 
 fmt:
 	fix go fmt . ./...
