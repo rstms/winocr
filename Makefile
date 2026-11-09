@@ -19,15 +19,13 @@ go.mod:
 go.sum: go.mod
 	go mod tidy
 
-$(binary): .fmt
+$(binary): fmt
 	fix go build ./...
-	go build $(buildflags) main.go
+	go build 
+	#go build $(buildflags) main.go
 
-.fmt: $(GOSRC) 
+fmt:
 	fix go fmt . ./...
-	touch $@
-
-fmt: .fmt
 
 install: $(binary)
 	go install 
