@@ -94,6 +94,9 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 	time.Sleep(1 * time.Second)
 
 	x, y, width, height := robotgo.GetClient(pid)
+	if s.debug {
+		fmt.Printf("WriteWindowImage: x=%d y=%d width=%d height=%d\n", x, y, width, height)
+	}
 	image, err := robotgo.CaptureImg(x, y, width, height)
 	if err != nil {
 		return Fatal(err)
