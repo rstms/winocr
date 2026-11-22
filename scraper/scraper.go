@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/otiai10/gosseract/v2"
 	"image/png"
@@ -30,7 +29,7 @@ func NewScraper() (*Scraper, error) {
 		return nil, Fatal(err)
 	}
 	if s.debug {
-		fmt.Printf("NewScraper: %s\n", FormatJSON(s))
+		log.Printf("NewScraper: %s\n", FormatJSON(s))
 	}
 	return &s, nil
 
@@ -95,7 +94,7 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 
 	x, y, width, height := robotgo.GetClient(pid)
 	if s.debug {
-		fmt.Printf("WriteWindowImage: x=%d y=%d width=%d height=%d\n", x, y, width, height)
+		log.Printf("WriteWindowImage: x=%d y=%d width=%d height=%d\n", x, y, width, height)
 	}
 	image, err := robotgo.CaptureImg(x, y, width, height)
 	if err != nil {
