@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
+const Version = "0.0.13"
+
 type Scraper struct {
+	Version            string
 	pid                int
 	GosseractVersion   string
 	AvailableLanguages []string
@@ -20,6 +23,7 @@ type Scraper struct {
 
 func NewScraper() (*Scraper, error) {
 	s := Scraper{
+		Version:          Version,
 		GosseractVersion: gosseract.Version(),
 		debug:            ViperGetBool("debug"),
 	}
@@ -90,6 +94,15 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 	if err != nil {
 		return Fatal(err)
 	}
+
+	defer func() {
+		err := s.ActivateWindow(os.Getpid())
+		if err != nil {
+			log.Fatal(Fatal(err))
+			os.Exit(1)
+		}
+	}()
+
 	time.Sleep(1 * time.Second)
 
 	x, y, width, height := robotgo.GetClient(pid)
