@@ -90,18 +90,23 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 
 func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 
+	activeName, activeExe, activePid := robotgo.GetActiveApp()
+	if s.debug {
+		log.Printf("WriteWindowImage: activeName=%s activeExe=%s activePid=%d\n", activeName, activeExe, activePid)
+	}
+
 	err := s.ActivateWindow(pid)
 	if err != nil {
 		return Fatal(err)
 	}
 
-	defer func() {
-		err := s.ActivateWindow(os.Getpid())
+	defer func(pid int) {
+		err := s.ActivateWindow(pid)
 		if err != nil {
 			log.Fatal(Fatal(err))
 			os.Exit(1)
 		}
-	}()
+	}(activePid)
 
 	time.Sleep(1 * time.Second)
 
