@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const Version = "0.0.15"
+const Version = "0.0.16"
 
 type Display struct {
 	Index  int
