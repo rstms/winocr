@@ -40,7 +40,7 @@ var cfgFile string
 var runtimeDir string
 
 var rootCmd = &cobra.Command{
-	Version: "0.1.6",
+	Version: "0.1.7",
 	Use:     "winocr",
 	Short:   "scrape process window content",
 	Long: `
