@@ -38,6 +38,7 @@ func (s WindowState) String() string {
 var user32 = syscall.NewLazyDLL("user32.dll")
 var procGetWindowPlacement = user32.NewProc("GetWindowPlacement")
 var procShowWindow = user32.NewProc("ShowWindow")
+var procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 
 type WINDOWPLACEMENT struct {
 	length        uint32
@@ -67,6 +68,14 @@ func GetWindowState(hwnd uintptr) (WindowState, error) {
 
 func SetWindowState(hwnd uintptr, state WindowState) error {
 	ret, _, err := procShowWindow.Call(hwnd, uintptr(state))
+	if ret == 0 {
+		return Fatal(err)
+	}
+	return nil
+}
+
+func SetForegroundWindow(hwnd uintptr) error {
+	ret, _, err := procSetForegroundWindow.Call(hwnd)
 	if ret == 0 {
 		return Fatal(err)
 	}

@@ -241,7 +241,10 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				return Fatal(err)
 			}
 
-			robotgo.SetForeg(robotgo.GetHWND())
+			err = SetForegroundWindow(s.Client.hwnd)
+			if err != nil {
+				return Fatal(err)
+			}
 
 			return nil
 		}
