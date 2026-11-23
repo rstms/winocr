@@ -148,10 +148,13 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 	s.Client.Position.Point.X, s.Client.Position.Point.Y, s.Client.Position.Size.W, s.Client.Position.Size.H = robotgo.GetClient(pid)
 	s.Client.Bounds.Point.X, s.Client.Bounds.Point.Y, s.Client.Bounds.Size.W, s.Client.Bounds.Size.H = robotgo.GetBounds(pid)
 
-	x := s.Client.Position.Point.X
-	y := s.Client.Position.Point.Y
-	w := s.Client.Position.Size.W
-	h := s.Client.Position.Size.H
+	xscale := float64(s.Displays[0].Bounds.Size.W) / float64(s.Displays[0].Scale.W)
+	yscale := float64(s.Displays[0].Bounds.Size.H) / float64(s.Displays[0].Scale.H)
+
+	x := int(float64(s.Client.Position.Point.X) * xscale)
+	y := int(float64(s.Client.Position.Point.Y) * yscale)
+	w := int(float64(s.Client.Position.Size.W) * xscale)
+	h := int(float64(s.Client.Position.Size.H) * yscale)
 
 	if s.debug {
 		log.Printf("WriteWindowImage: %s\n", FormatJSON(s))
