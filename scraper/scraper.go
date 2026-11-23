@@ -54,6 +54,7 @@ func NewScraper() (*Scraper, error) {
 		Displays:         []Display{},
 	}
 	s.ScreenSizeX, s.ScreenSizeY = robotgo.GetScreenSize()
+	s.ActiveName, s.ActiveExe, s.ActivePid = robotgo.GetActiveApp()
 
 	var err error
 	s.AvailableLanguages, err = gosseract.GetAvailableLanguages()
@@ -139,8 +140,6 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 
 func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 
-	s.ActiveName, s.ActiveExe, s.ActivePid = robotgo.GetActiveApp()
-
 	err := s.ActivateWindow(pid)
 	if err != nil {
 		return Fatal(err)
@@ -192,11 +191,20 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				return Fatal(err)
 			}
 
+			hwndByPid := robotgo.GetHWNDByPid(pid)
+			if s.debug {
+				log.Printf("pid %d GetHWNDByPid hwnd=%v\n", pid, hwndByPid)
+			}
+
+			hwndGet := robotgo.GetHWND()
+			if s.debug {
+				log.Printf("pid %d GetHWND hwnd=%v\n", pid, hwndGet)
+			}
+
 			handle := robotgo.GetActive()
 			s.Client.hwnd = uintptr(unsafe.Pointer(handle.HWnd))
-
 			if s.debug {
-				log.Printf("pid %d hwnd=%v\n", pid, s.Client.hwnd)
+				log.Printf("pid %d GetActive hwnd=%v\n", pid, s.Client.hwnd)
 			}
 
 			s.Client.State, err = GetWindowState(s.Client.hwnd)
@@ -208,7 +216,7 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				log.Printf("pid %d window state is %v\n", pid, s.Client.State)
 			}
 			if s.Client.State == WindowStateMinimized || s.Client.State == WindowStateHidden {
-				newState := WindowStateNormal
+				newState := WindowStateRestore
 				if s.debug {
 					log.Printf("setting pid %d window state to %v\n", pid, newState)
 				}
@@ -216,9 +224,20 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				if err != nil {
 					return Fatal(err)
 				}
+
+				readbackState, err := GetWindowState(s.Client.hwnd)
+				if err != nil {
+					return Fatal(err)
+				}
+				if s.debug {
+					log.Printf("pid %d readback state: %v\n", pid, readbackState)
+				}
+				if readbackState != WindowStateNormal {
+					return Fatalf("abnormal window state: %v", readbackState)
+				}
 			}
 
-			robotgo.SetForeg(robotgo.GetHWND())
+			//robotgo.SetForeg(robotgo.GetHWND())
 
 			return nil
 		}

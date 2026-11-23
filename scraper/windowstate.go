@@ -58,19 +58,17 @@ type WINDOWPLACEMENT struct {
 func GetWindowState(hwnd uintptr) (WindowState, error) {
 	var placement WINDOWPLACEMENT
 	placement.length = uint32(unsafe.Sizeof(placement))
-	ret, _, _ := procGetWindowPlacement.Call(hwnd, uintptr(unsafe.Pointer(&placement)))
+	ret, _, err := procGetWindowPlacement.Call(hwnd, uintptr(unsafe.Pointer(&placement)))
 	if ret == 0 {
-		errorCode := syscall.GetLastError()
-		return 0, Fatalf("GetWindowPlacement failed with code: %d", errorCode)
+		return 0, Fatal(err)
 	}
 	return WindowState(placement.showCmd), nil
 }
 
 func SetWindowState(hwnd uintptr, state WindowState) error {
-	ret, _, _ := procShowWindow.Call(hwnd, uintptr(state))
+	ret, _, err := procShowWindow.Call(hwnd, uintptr(state))
 	if ret == 0 {
-		errorCode := syscall.GetLastError()
-		return Fatalf("ShowWindow failed with code: %d", errorCode)
+		return Fatal(err)
 	}
 	return nil
 }
