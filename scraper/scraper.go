@@ -160,7 +160,7 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 	h := int(float64(s.Client.Position.Size.H) * yscale)
 
 	if s.debug {
-		log.Printf("WriteWindowImage: %s\n", FormatJSON(s))
+		log.Printf("Client: %s\n", FormatJSON(s.Client))
 		log.Printf("CaptureImg(%d, %d, %d, %d)\n", x, y, w, h)
 	}
 
@@ -208,7 +208,7 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				log.Printf("pid %d window state is %v\n", pid, s.Client.State)
 			}
 			if s.Client.State == WindowStateMinimized || s.Client.State == WindowStateHidden {
-				newState := WindowStateRestore
+				newState := WindowStateNormal
 				if s.debug {
 					log.Printf("setting pid %d window state to %v\n", pid, newState)
 				}
