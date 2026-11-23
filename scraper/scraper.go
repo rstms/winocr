@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unsafe"
 )
 
 const Version = "0.0.16"
@@ -22,9 +23,12 @@ type Display struct {
 }
 
 type Client struct {
-	PID      int
-	Position robotgo.Rect
-	Bounds   robotgo.Rect
+	PID        int
+	Position   robotgo.Rect
+	Bounds     robotgo.Rect
+	State      WindowState
+	hwnd       uintptr
+	SavedState bool
 }
 
 type Scraper struct {
@@ -37,6 +41,9 @@ type Scraper struct {
 	ScreenSizeY        int
 	Displays           []Display
 	Client             Client
+	ActivePid          int
+	ActiveName         string
+	ActiveExe          string
 }
 
 func NewScraper() (*Scraper, error) {
@@ -56,15 +63,10 @@ func NewScraper() (*Scraper, error) {
 	displayCount := robotgo.DisplaysNum()
 	for i := 0; i < displayCount; i++ {
 		d := Display{Index: i}
-
 		d.Rect = robotgo.GetDisplayRect(i)
-
 		d.Bounds.Point.X, d.Bounds.Point.Y, d.Bounds.Size.W, d.Bounds.Size.H = robotgo.GetDisplayBounds(i)
-
 		d.Screen = robotgo.GetScreenRect(i)
-
 		d.Scale.W, d.Scale.H = robotgo.GetScaleSize(i)
-
 		s.Displays = append(s.Displays, d)
 	}
 	if s.debug {
@@ -75,6 +77,18 @@ func NewScraper() (*Scraper, error) {
 }
 
 func (s *Scraper) Close() error {
+	if s.Client.SavedState {
+		err := SetWindowState(s.Client.hwnd, s.Client.State)
+		if err != nil {
+			return Fatal(err)
+		}
+	}
+	if s.ActivePid != 0 {
+		err := robotgo.ActivePid(s.ActivePid)
+		if err != nil {
+			return Fatal(err)
+		}
+	}
 	return nil
 }
 
@@ -125,23 +139,12 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 
 func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 
-	activeName, activeExe, activePid := robotgo.GetActiveApp()
-	if s.debug {
-		log.Printf("WriteWindowImage: activeName=%s activeExe=%s activePid=%d\n", activeName, activeExe, activePid)
-	}
+	s.ActiveName, s.ActiveExe, s.ActivePid = robotgo.GetActiveApp()
 
 	err := s.ActivateWindow(pid)
 	if err != nil {
 		return Fatal(err)
 	}
-
-	defer func(pid int) {
-		err := s.ActivateWindow(pid)
-		if err != nil {
-			log.Fatal(Fatal(err))
-			os.Exit(1)
-		}
-	}(activePid)
 
 	time.Sleep(1 * time.Second)
 
@@ -179,13 +182,44 @@ func (s *Scraper) ActivateWindow(pid int) error {
 	}
 	for _, p := range pids {
 		if p == pid {
+
 			if s.debug {
 				log.Printf("activating PID %d\n", pid)
 			}
+
 			err = robotgo.ActivePid(pid)
 			if err != nil {
 				return Fatal(err)
 			}
+
+			handle := robotgo.GetActive()
+			s.Client.hwnd = uintptr(unsafe.Pointer(handle.HWnd))
+
+			if s.debug {
+				log.Printf("pid %d hwnd=%v\n", pid, s.Client.hwnd)
+			}
+
+			s.Client.State, err = GetWindowState(s.Client.hwnd)
+			if err != nil {
+				return Fatal(err)
+			}
+			s.Client.SavedState = true
+			if s.debug {
+				log.Printf("pid %d window state is %v\n", pid, s.Client.State)
+			}
+			if s.Client.State == WindowStateMinimized || s.Client.State == WindowStateHidden {
+				newState := WindowStateRestore
+				if s.debug {
+					log.Printf("setting pid %d window state to %v\n", pid, newState)
+				}
+				err := SetWindowState(s.Client.hwnd, newState)
+				if err != nil {
+					return Fatal(err)
+				}
+			}
+
+			//robotgo.SetForeg(hwnd)
+
 			return nil
 		}
 	}

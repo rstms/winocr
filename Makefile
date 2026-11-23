@@ -24,7 +24,7 @@ go.sum: go.mod
 	go mod tidy
 
 $(binary): go.sum fmt
-	go build 
+	fix go build 
 
 fmt:
 	fix go fmt . ./...
