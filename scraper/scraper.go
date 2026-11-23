@@ -190,7 +190,6 @@ func (s *Scraper) ActivateWindow(pid int) error {
 			if err != nil {
 				return Fatal(err)
 			}
-
 			hwndByPid := robotgo.GetHWNDByPid(pid)
 			if s.debug {
 				log.Printf("pid %d GetHWNDByPid hwnd=%v\n", pid, hwndByPid)
@@ -237,7 +236,12 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				}
 			}
 
-			//robotgo.SetForeg(robotgo.GetHWND())
+			err = robotgo.ActivePid(pid)
+			if err != nil {
+				return Fatal(err)
+			}
+
+			robotgo.SetForeg(robotgo.GetHWND())
 
 			return nil
 		}
