@@ -327,35 +327,34 @@ func (s *Scraper) getCaptureRect(id string) (int, int, int, int, error) {
 		if err != nil {
 			return 0, 0, 0, 0, Fatal(err)
 		}
-		log.Printf("found: id=%s metrics=%s\n", id, FormatJSON(metrics))
+		if s.debug {
+			log.Printf("found handle %s\nmetrics=%s\n", id, FormatJSON(metrics))
+		}
 		pid = metrics.PID
 		hwnd = metrics.Hwnd
-		/*
-			windows, err := s.MapWindows()
-			if err != nil {
-				return 0, 0, 0, 0, Fatal(err)
-			}
-			for handle, w := range windows {
-				if strings.ToLower(handle) == id {
-					window = w
-					found = true
-					break
-				}
-			}
-		*/
 
 	case regexp.MustCompile(`^[0-9]+$`).MatchString(id):
 		windows, err := s.MapWindows()
 		if err != nil {
 			return 0, 0, 0, 0, Fatal(err)
 		}
-		pid, err = strconv.Atoi(id)
+		idpid, err := strconv.Atoi(id)
 		if err != nil {
 			return 0, 0, 0, 0, Fatal(err)
 		}
 		for _, w := range windows {
-			if w.PID == pid {
+			if w.PID == idpid {
 				hwnd = w.Hwnd
+				metrics, err := GetWindowMetrics(uintptr(hwnd))
+				if err != nil {
+					return 0, 0, 0, 0, Fatal(err)
+				}
+				if s.debug {
+					log.Printf("found pid %s\nwindow=%s\nmetrics=%s\n", id, FormatJSON(w), FormatJSON(metrics))
+				}
+				if metrics.PID != idpid {
+					return 0, 0, 0, 0, Fatalf("pid mismatch; expected %d, got %d", idpid, metrics.PID)
+				}
 				break
 			}
 		}
@@ -392,6 +391,7 @@ func (s *Scraper) getCaptureRect(id string) (int, int, int, int, error) {
 	default:
 		return 0, 0, 0, 0, Fatalf("unexpected id format: %s", id)
 	}
+
 	if pid == 0 {
 		return 0, 0, 0, 0, Fatalf("id not found: %s", id)
 	}
