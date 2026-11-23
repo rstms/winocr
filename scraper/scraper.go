@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-const Version = "0.0.17"
+const Version = "0.1.0"
 
 type Display struct {
 	Index  int
