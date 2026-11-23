@@ -246,6 +246,9 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				return Fatal(err)
 			}
 
+			robotgo.SetForeg(robotgo.GetHWND())
+			robotgo.SetFocus(robotgo.GetHWND())
+
 			return nil
 		}
 	}
