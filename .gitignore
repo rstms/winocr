@@ -7,3 +7,4 @@ cruft
 *.log
 *postactivate
 assets/assets
+*.png
