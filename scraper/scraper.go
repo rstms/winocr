@@ -259,7 +259,16 @@ func (s *Scraper) ActivateWindow(pid int) error {
 			if s.debug {
 				log.Printf("pid %d window state is %v\n", pid, s.Client.State)
 			}
-			if s.Client.State == WindowStateMinimized || s.Client.State == WindowStateHidden {
+
+			switch {
+			case ViperGetBool("maximized"):
+				err := SetWindowState(s.Client.hwnd, WindowStateMaximized)
+				if err != nil {
+					return Fatal(err)
+				}
+				time.Sleep(time.Second)
+
+			case s.Client.State == WindowStateMinimized || s.Client.State == WindowStateHidden:
 				newState := WindowStateRestore
 				if s.debug {
 					log.Printf("setting pid %d window state to %v\n", pid, newState)
@@ -269,6 +278,7 @@ func (s *Scraper) ActivateWindow(pid int) error {
 					return Fatal(err)
 				}
 				time.Sleep(time.Second)
+
 				readbackState, err := GetWindowState(s.Client.hwnd)
 				if err != nil {
 					return Fatal(err)
@@ -389,6 +399,10 @@ func (s *Scraper) getCaptureRect(id string) (int, int, int, int, error) {
 	err := s.ActivateWindow(pid)
 	if err != nil {
 		return 0, 0, 0, 0, Fatal(err)
+	}
+
+	if ViperGetBool("maximized") {
+		return 0, 0, s.ScreenSizeX, s.ScreenSizeY, nil
 	}
 
 	metrics, err := GetWindowMetrics(hwnd)

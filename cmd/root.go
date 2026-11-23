@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 	Use:     "winocr",
 	Short:   "scrape process window content",
 	Long: `
-Capture a PNG image or OCR text of the main window identified by PID
+Capture a PNG image or OCR text from a desktop window
 `,
 }
 
@@ -57,4 +57,5 @@ func Execute() {
 
 func init() {
 	CobraInit(rootCmd)
+	OptionSwitch(rootCmd, "maximized", "M", "maximize target window and capture root window")
 }
