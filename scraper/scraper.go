@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/otiai10/gosseract/v2"
 	"image/png"
@@ -8,6 +9,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -44,6 +48,16 @@ type Scraper struct {
 	ActivePid          int
 	ActiveName         string
 	ActiveExe          string
+}
+
+type Window struct {
+	Name    string
+	Title   string
+	Class   string
+	Handle  string
+	PID     int
+	Hwnd    uintptr
+	Metrics WindowMetrics
 }
 
 func NewScraper() (*Scraper, error) {
@@ -93,7 +107,7 @@ func (s *Scraper) Close() error {
 	return nil
 }
 
-func (s *Scraper) WindowText(pid int) (string, error) {
+func (s *Scraper) WindowText(id string) (string, error) {
 	tempDir, err := os.MkdirTemp("", "image*")
 	if err != nil {
 		return "", Fatal(err)
@@ -105,7 +119,7 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 		return "", Fatal(err)
 	}
 	defer ofp.Close()
-	err = s.WriteWindowImage(ofp, pid)
+	err = s.WriteWindowImage(ofp, id)
 	if err != nil {
 		return "", Fatal(err)
 	}
@@ -138,29 +152,11 @@ func (s *Scraper) WindowText(pid int) (string, error) {
 	return text, nil
 }
 
-func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
+func (s *Scraper) WriteWindowImage(writer io.Writer, id string) error {
 
-	err := s.ActivateWindow(pid)
+	x, y, w, h, err := s.getCaptureRect(id)
 	if err != nil {
 		return Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
-
-	s.Client.Position.Point.X, s.Client.Position.Point.Y, s.Client.Position.Size.W, s.Client.Position.Size.H = robotgo.GetClient(pid)
-	s.Client.Bounds.Point.X, s.Client.Bounds.Point.Y, s.Client.Bounds.Size.W, s.Client.Bounds.Size.H = robotgo.GetBounds(pid)
-
-	xscale := float64(s.Displays[0].Bounds.Size.W) / float64(s.Displays[0].Scale.W)
-	yscale := float64(s.Displays[0].Bounds.Size.H) / float64(s.Displays[0].Scale.H)
-
-	x := int(float64(s.Client.Position.Point.X) * xscale)
-	y := int(float64(s.Client.Position.Point.Y) * yscale)
-	w := int(float64(s.Client.Position.Size.W) * xscale)
-	h := int(float64(s.Client.Position.Size.H) * yscale)
-
-	if s.debug {
-		log.Printf("Client: %s\n", FormatJSON(s.Client))
-		log.Printf("CaptureImg(%d, %d, %d, %d)\n", x, y, w, h)
 	}
 
 	image, err := robotgo.CaptureImg(x, y, w, h)
@@ -172,6 +168,55 @@ func (s *Scraper) WriteWindowImage(writer io.Writer, pid int) error {
 		return Fatal(err)
 	}
 	return nil
+}
+
+func (s *Scraper) MapWindows() (map[string]Window, error) {
+
+	windows := map[string]Window{}
+
+	names, err := robotgo.FindNames()
+	if err != nil {
+		return nil, Fatal(err)
+	}
+	for _, name := range names {
+		if name != "" {
+			ids, err := robotgo.FindIds(name)
+			if err != nil {
+				return nil, Fatal(err)
+			}
+			for _, id := range ids {
+				hwnd := robotgo.GetHWNDByPid(id)
+				if hwnd != 0 {
+					handle := fmt.Sprintf("0x%x", hwnd)
+					_, ok := windows[handle]
+					if !ok {
+						w := Window{
+							Name:   name,
+							Handle: handle,
+							Hwnd:   uintptr(hwnd),
+							PID:    id,
+						}
+						w.Title, err = GetWindowText(uintptr(hwnd))
+						if err != nil {
+							return nil, Fatal(err)
+						}
+
+						w.Class, err = GetWindowClass(uintptr(hwnd))
+						if err != nil {
+							return nil, Fatal(err)
+						}
+
+						w.Metrics, err = GetWindowMetrics(uintptr(hwnd))
+						if err != nil {
+							return nil, Fatal(err)
+						}
+						windows[handle] = w
+					}
+				}
+			}
+		}
+	}
+	return windows, nil
 }
 
 func (s *Scraper) ActivateWindow(pid int) error {
@@ -223,7 +268,7 @@ func (s *Scraper) ActivateWindow(pid int) error {
 				if err != nil {
 					return Fatal(err)
 				}
-
+				time.Sleep(time.Second)
 				readbackState, err := GetWindowState(s.Client.hwnd)
 				if err != nil {
 					return Fatal(err)
@@ -253,4 +298,102 @@ func (s *Scraper) ActivateWindow(pid int) error {
 		}
 	}
 	return Fatalf("PID %d not found", pid)
+}
+
+func (s *Scraper) getCaptureRect(id string) (int, int, int, int, error) {
+
+	id = strings.ToLower(id)
+	var pid int
+	var hwnd uintptr
+	switch {
+	case id == "root":
+		return 0, 0, s.ScreenSizeX, s.ScreenSizeY, nil
+	case regexp.MustCompile(`^0x[0-9a-f]+$`).MatchString(id):
+		handle, err := strconv.ParseUint(id[2:], 16, 64)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		metrics, err := GetWindowMetrics(uintptr(handle))
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		log.Printf("found: id=%s metrics=%s\n", id, FormatJSON(metrics))
+		pid = metrics.PID
+		hwnd = metrics.Hwnd
+		/*
+			windows, err := s.MapWindows()
+			if err != nil {
+				return 0, 0, 0, 0, Fatal(err)
+			}
+			for handle, w := range windows {
+				if strings.ToLower(handle) == id {
+					window = w
+					found = true
+					break
+				}
+			}
+		*/
+
+	case regexp.MustCompile(`^[0-9]+$`).MatchString(id):
+		windows, err := s.MapWindows()
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		pid, err = strconv.Atoi(id)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		for _, w := range windows {
+			if w.PID == pid {
+				hwnd = w.Hwnd
+				break
+			}
+		}
+
+	/*
+		pid, err := strconv.Atoi(id)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		err = s.ActivateWindow(pid)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+		time.Sleep(1 * time.Second)
+
+		s.Client.Position.Point.X, s.Client.Position.Point.Y, s.Client.Position.Size.W, s.Client.Position.Size.H = robotgo.GetClient(pid)
+		s.Client.Bounds.Point.X, s.Client.Bounds.Point.Y, s.Client.Bounds.Size.W, s.Client.Bounds.Size.H = robotgo.GetBounds(pid)
+
+		xscale := float64(s.Displays[0].Bounds.Size.W) / float64(s.Displays[0].Scale.W)
+		yscale := float64(s.Displays[0].Bounds.Size.H) / float64(s.Displays[0].Scale.H)
+
+		x := int(float64(s.Client.Position.Point.X) * xscale)
+		y := int(float64(s.Client.Position.Point.Y) * yscale)
+		w := int(float64(s.Client.Position.Size.W) * xscale)
+		h := int(float64(s.Client.Position.Size.H) * yscale)
+
+		if s.debug {
+			log.Printf("Client: %s\n", FormatJSON(s.Client))
+			log.Printf("CaptureImg(%d, %d, %d, %d)\n", x, y, w, h)
+		}
+		return x, y, w, h, nil
+	*/
+
+	default:
+		return 0, 0, 0, 0, Fatalf("unexpected id format: %s", id)
+	}
+	if pid == 0 {
+		return 0, 0, 0, 0, Fatalf("id not found: %s", id)
+	}
+
+	err := s.ActivateWindow(pid)
+	if err != nil {
+		return 0, 0, 0, 0, Fatal(err)
+	}
+
+	metrics, err := GetWindowMetrics(hwnd)
+	if err != nil {
+		return 0, 0, 0, 0, Fatal(err)
+	}
+	return metrics.Content.X, metrics.Content.Y, metrics.Content.W, metrics.Content.H, nil
 }

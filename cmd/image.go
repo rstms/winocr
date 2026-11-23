@@ -32,14 +32,13 @@ package cmd
 
 import (
 	"os"
-	"strconv"
 
 	"github.com/rstms/winocr/scraper"
 	"github.com/spf13/cobra"
 )
 
 var imageCmd = &cobra.Command{
-	Use:   "image PID FILENAME",
+	Use:   "image PID|HANDLE FILENAME",
 	Short: "write PNG image snapshot of process window",
 	Long: `
 If the process has a main window, an image is captured to a 
@@ -53,8 +52,7 @@ If FILENAME is '-', the image data is written to stdout.
 		cobra.CheckErr(err)
 		defer s.Close()
 
-		pid, err := strconv.Atoi(args[0])
-		cobra.CheckErr(err)
+		id := args[0]
 
 		ofp := os.Stdout
 		if args[1] != "-" {
@@ -64,7 +62,7 @@ If FILENAME is '-', the image data is written to stdout.
 			defer ofp.Close()
 		}
 
-		err = s.WriteWindowImage(ofp, pid)
+		err = s.WriteWindowImage(ofp, id)
 		cobra.CheckErr(err)
 	},
 }
