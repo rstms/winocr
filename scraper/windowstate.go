@@ -48,6 +48,7 @@ var procGetClientRect = user32.NewProc("GetClientRect")
 var procGetClassName = user32.NewProc("GetClassNameW")
 var procGetWindowText = user32.NewProc("GetWindowTextW")
 var procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
+var procSetFocus = user32.NewProc("SetFocus")
 
 var procGetAncestor = user32.NewProc("GetAncestor")
 
@@ -158,6 +159,16 @@ func GetWindowMetrics(hwnd uintptr) (WindowMetrics, error) {
 	}
 
 	return metrics, nil
+}
+
+func SetWindowFocus(hwnd uintptr) error {
+	ret, _, err := procSetFocus.Call(hwnd)
+	if ret == 0 {
+		if isError(err) {
+			return Fatal(err)
+		}
+	}
+	return nil
 }
 
 func GetWindowPid(hwnd uintptr) (int, error) {

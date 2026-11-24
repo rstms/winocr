@@ -396,9 +396,18 @@ func (s *Scraper) getCaptureRect(id string) (int, int, int, int, error) {
 		return 0, 0, 0, 0, Fatalf("id not found: %s", id)
 	}
 
-	err := s.ActivateWindow(pid)
-	if err != nil {
-		return 0, 0, 0, 0, Fatal(err)
+	if !ViperGetBool("no_activate") {
+		err := s.ActivateWindow(pid)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
+	}
+
+	if ViperGetBool("focused") {
+		err := SetWindowFocus(hwnd)
+		if err != nil {
+			return 0, 0, 0, 0, Fatal(err)
+		}
 	}
 
 	if ViperGetBool("maximized") {

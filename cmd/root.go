@@ -58,4 +58,6 @@ func Execute() {
 func init() {
 	CobraInit(rootCmd)
 	OptionSwitch(rootCmd, "maximized", "M", "maximize target window and capture root window")
+	OptionSwitch(rootCmd, "no-activate", "", "skip window activation before capture")
+	OptionSwitch(rootCmd, "focused", "F", "focus window before capture")
 }
